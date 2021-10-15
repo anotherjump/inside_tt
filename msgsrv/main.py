@@ -5,6 +5,7 @@ import flask_jwt_extended as fjwt
 
 
 def connect_db():
+    """Возвращает подключение к базе данных"""
     conn = mariadb.connect(
         user="root",
         password="dbpass",
@@ -23,6 +24,8 @@ db_conn = None
 
 @app.route("/login", methods=["POST"])
 def login():
+    """"Проверяет имя/пароль, при успешной проверке возвращает токен авторизации,
+    иначе возвращает информацию об ошибке"""
     try:
         name = request.json.get("name", None)
         password = request.json.get("password", None)
@@ -41,7 +44,9 @@ def login():
 @app.route('/messages', methods=["POST"])
 @fjwt.jwt_required()
 def messages_ep():
-    status = None  # переменная для возврата информации об ошибке или успешном сохранении сообщения
+    """Эндпойнт обработки сообщений.
+    Принимает сообщения авторизованных пользователей.
+    Возвращает N последних сообщений пользователя по команде 'history [N]' """
     try:
         name = request.json.get("name", None)
         message = request.json.get("message", None)
