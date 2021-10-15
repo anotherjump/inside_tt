@@ -16,10 +16,10 @@ def connect_db():
     return conn
 
 
+# инициализация flask и jwt manager
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "not_so_secret"
 jwt = fjwt.JWTManager(app)
-db_conn = None
 
 
 @app.route("/login", methods=["POST"])
