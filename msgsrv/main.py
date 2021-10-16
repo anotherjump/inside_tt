@@ -2,6 +2,7 @@ import re
 import mariadb
 from flask import Flask, request, jsonify
 import flask_jwt_extended as fjwt
+import time
 
 
 def connect_db():
@@ -26,19 +27,24 @@ jwt = fjwt.JWTManager(app)
 def login():
     """"Проверяет имя/пароль, при успешной проверке возвращает токен авторизации,
     иначе возвращает информацию об ошибке"""
+    status = None
     try:
+        conn = connect_db()
+        db_cursor = conn.cursor()
         name = request.json.get("name", None)
         password = request.json.get("password", None)
         db_cursor.execute("SELECT password FROM users WHERE name=?", (name,))
         db_password = db_cursor.fetchone()
         if not db_password:
             raise Exception("wrong name")
-        assert password == db_password[0], "wrong password"
-        jwt_access_token = fjwt.create_access_token(identity=name)
+        if password == db_password[0]:
+            jwt_access_token = fjwt.create_access_token(identity=name)
+            status = jsonify(access_token=jwt_access_token)
+        conn.close()
     except Exception as e:
-        return jsonify(msg="login failed", error=str(e)), 401
-
-    return jsonify(access_token=jwt_access_token), 200
+        status = str(e)
+        return jsonify(msg="login failed", error=status), 401
+    return status, 200
 
 
 @app.route('/messages', methods=["POST"])
@@ -48,6 +54,8 @@ def messages_ep():
     Принимает сообщения авторизованных пользователей.
     Возвращает N последних сообщений пользователя по команде 'history [N]' """
     try:
+        conn = connect_db()
+        db_cursor = conn.cursor()
         name = request.json.get("name", None)
         message = request.json.get("message", None)
         if not name:
@@ -58,7 +66,6 @@ def messages_ep():
         # попытка спарсить команду history из сообщения
         history_cmd_template = r"^(history)\s+(\d+)$"
         history_cmd = re.match(history_cmd_template, message)
-        print(history_cmd)
         if history_cmd:
             db_cursor.execute("SELECT message FROM messages WHERE name=? ORDER BY msgid DESC LIMIT ?",
                               (name, history_cmd.groups()[1]))
@@ -67,7 +74,8 @@ def messages_ep():
 
         # сохранение сообщения в базу
         db_cursor.execute("INSERT INTO messages (message, name) VALUES (?, ?)", (message, name))
-        db_conn.commit()
+        conn.commit()
+        conn.close()
         status = "message received"
     except Exception as e:
         status = str(e)
@@ -75,6 +83,4 @@ def messages_ep():
 
 
 if __name__ == "__main__":
-    db_conn = connect_db()
-    db_cursor = db_conn.cursor()
     app.run(host='0.0.0.0')

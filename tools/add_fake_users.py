@@ -1,6 +1,6 @@
 import mariadb
 import faker
-NUMBER_OF_USERS_TO_ADD = 10
+NUMBER_OF_USERS_TO_ADD = 100
 
 
 def connect_db():
@@ -8,7 +8,7 @@ def connect_db():
         user="root",
         password="dbpass",
         host="127.0.0.1",
-        port=3307,
+        port=3306,
         database="msgsrv"
         )
     return conn

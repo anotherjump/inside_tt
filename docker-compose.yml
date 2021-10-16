@@ -1,6 +1,7 @@
 version: '3'
 services:
   mariadb:
+    image: anotherjmp/inside_tt_matiadb
     build: ./mariadb
     restart: on-failure
     hostname: mariadb
@@ -12,6 +13,7 @@ services:
       - default
 
   msgsrv:
+    image: anotherjmp/inside_tt_msgsrv
     build: ./msgsrv
     depends_on:
       - mariadb
