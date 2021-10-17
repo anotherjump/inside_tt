@@ -1,7 +1,7 @@
 version: '3'
 services:
   mariadb:
-    image: anotherjmp/inside_tt_matiadb
+    image: anotherjmp/inside_tt_mariadb
     build: ./mariadb
     restart: on-failure
     hostname: mariadb
