@@ -1,7 +1,6 @@
 import pytest
 import requests
 import json
-import mariadb
 import faker
 
 
