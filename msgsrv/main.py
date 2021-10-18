@@ -14,7 +14,7 @@ def connect_db():
         port=3306,
         database="msgsrv"
         )
-    return conn
+    return conn, conn.cursor()
 
 
 # инициализация flask и jwt manager
@@ -29,8 +29,7 @@ def login():
     иначе возвращает информацию об ошибке"""
     status = None
     try:
-        conn = connect_db()
-        db_cursor = conn.cursor()
+        conn, db_cursor = connect_db()
         name = request.json.get("name", None)
         password = request.json.get("password", None)
         db_cursor.execute("SELECT password FROM users WHERE name=?", (name,))
@@ -54,8 +53,7 @@ def messages_ep():
     Принимает сообщения авторизованных пользователей.
     Возвращает N последних сообщений пользователя по команде 'history [N]' """
     try:
-        conn = connect_db()
-        db_cursor = conn.cursor()
+        conn, db_cursor = connect_db()
         name = request.json.get("name", None)
         message = request.json.get("message", None)
         if not name:
@@ -79,6 +77,47 @@ def messages_ep():
         status = "message received"
     except Exception as e:
         status = str(e)
+    return jsonify(msg=status), 200
+
+
+@app.route('/adduser', methods=["POST"])
+def adduser():
+    """Эндпойнт регистрации новых пользователей"""
+    try:
+        conn, db_cursor = connect_db()
+        name = request.json.get("name", None)
+        password = request.json.get("password", None)
+        if not name:
+            raise Exception("name field is mandatory")
+        if not password:
+            raise Exception("password field is mandatory")
+        db_cursor.execute("INSERT INTO users (name, password) VALUES (?, ?)", (name, password))
+        conn.commit()
+        conn.close()
+        status = f"user {name} added"
+    except Exception as e:
+        status = str(e)
+        return jsonify(msg="adding new user failed", error=status), 400
+    return jsonify(msg=status), 201
+
+
+@app.route('/adduser', methods=["DELETE"])
+@fjwt.jwt_required()
+def deluser():
+    """funtion to delete user"""
+    try:
+        conn, db_cursor = connect_db()
+        name = request.json.get("name", None)
+        if not name:
+            raise Exception("name field is mandatory")
+        assert name == fjwt.get_jwt_identity(), "wrong name"
+        db_cursor.execute("DELETE FROM users WHERE name=?", (name,))
+        conn.commit()
+        conn.close()
+        status = f"user {name} deleted"
+    except Exception as e:
+        status = str(e)
+        return jsonify(msg="deleting user failed", error=status), 400
     return jsonify(msg=status), 200
 
 
